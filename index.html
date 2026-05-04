@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Snake — Home</title>
+  <style>
+    :root {
+      --bg-primary: #0B1220;
+      --bg-secondary: #111B2E;
+      --text-primary: #E5E7EB;
+      --text-secondary: #ffffff;
+      --ring-color: rgba(255, 255, 255, 0.1);
+      --board-bg: #111B2E;
+      --cell-bg: #0B1220;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 2px;
+      background: var(--board-bg);
+      padding: 8px;
+      border-radius: 12px;
+    }
+    
+    .cell {
+      aspect-ratio: 1;
+      background: var(--cell-bg);
+      border-radius: 3px;
+      transition: background 0.1s;
+    }
+    
+    .cell.snake {
+      background: #10b981;
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+    }
+    
+    .cell.snake-head {
+      background: #34d399;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
+    }
+    
+    .cell.food {
+      background: #f97316;
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+    }
+    
+    .color-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 2px solid transparent;
+    }
+    
+    .color-option:hover {
+      transform: scale(1.05);
+    }
+    
+    .color-option.selected {
+      border-color: white;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .theme-option {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg-secondary);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .theme-option:hover {
+      transform: scale(1.05);
+    }
+
+    .theme-option.selected {
+      border-color: white;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+    }
+
+    main {
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#0B1220] text-[#E5E7EB]">
+  <main class="mx-auto flex min-h-screen max-w-[430px] flex-col px-5 pb-8 pt-10">
+    <!-- Header -->
+    <header class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-11 w-11 rounded-2xl bg-[#111B2E] ring-1 ring-white/10 grid place-items-center">
+          <div class="h-5 w-5 rounded bg-emerald-400 shadow-[0_0_18px_rgba(74,222,128,.45)]"></div>
+        </div>
+        <div>
+          <p class="text-sm text-white/70">Arcade</p>
+          <h1 class="text-xl font-semibold tracking-tight">Snake</h1>
+        </div>
+      </div>
+
+      <button id="settingsBtn" class="rounded-2xl bg-[#111B2E] px-4 py-3 text-sm font-medium ring-1 ring-white/10 hover:bg-white/10">
+        Settings
+      </button>
+    </header>
+
+    <!-- Hero -->
+    <section class="mt-8 rounded-3xl bg-gradient-to-b from-white/10 to-white/5 p-5 ring-1 ring-white/10">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm text-white/70">Ready for a quick run?</p>
+          <h2 class="mt-1 text-2xl font-semibold tracking-tight">Beat your best score</h2>
+        </div>
+        <div class="flex items-center gap-2 rounded-2xl bg-black/20 px-3 py-2 ring-1 ring-white/10">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,.55)]"></span>
+          <p class="text-xs text-white/80">Control: Swipe</p>
+        </div>
+      </div>
+
+      <!-- Score cards -->
+      <div class="mt-5 grid grid-cols-2 gap-3">
+        <div class="rounded-2xl bg-[#111B2E] p-4 ring-1 ring-white/10">
+          <p class="text-xs text-white/60">Last score</p>
+          <p class="mt-2 text-3xl font-semibold tabular-nums" id="lastScore">42</p>
+          <p class="mt-1 text-xs text-white/60">Today</p>
+        </div>
+
+        <div class="rounded-2xl bg-[#111B2E] p-4 ring-1 ring-white/10">
+          <p class="text-xs text-white/60">Best score</p>
+          <p class="mt-2 text-3xl font-semibold tabular-nums" id="bestScore">128</p>
+          <p class="mt-1 text-xs text-emerald-300">Personal best</p>
+        </div>
+      </div>
+
+      <!-- Game Board (Hidden until play) -->
+      <div id="gameContainer" class="mt-5 hidden">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm text-white/70">Current score: <span id="currentScore" class="font-semibold text-emerald-400">0</span></p>
+          <button id="exitGame" class="text-xs px-3 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300">Exit</button>
+        </div>
+        <div class="game-board" id="gameBoard"></div>
+      </div>
+
+      <!-- Primary CTA -->
+      <button id="playBtn" class="mt-5 w-full rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-semibold text-[#04110B] shadow-[0_10px_30px_rgba(74,222,128,.25)] hover:brightness-95 active:scale-[0.99]">
+        Play
+      </button>
+
+      <div class="mt-3 flex items-center justify-between text-xs text-white/60">
+        <p>Tap Play to start instantly</p>
+        <p>Offline</p>
+      </div>
+    </section>
+
+    <!-- Quick actions -->
+    <section class="mt-6 grid grid-cols-2 gap-3">
+      <button id="statsBtn" class="rounded-2xl bg-[#111B2E] p-4 text-left ring-1 ring-white/10 hover:bg-white/10">
+        <p class="text-sm font-medium">Stats</p>
+        <p class="mt-1 text-xs text-white/60">Best, averages, history</p>
+      </button>
+      <button id="difficultyBtn" class="rounded-2xl bg-[#111B2E] p-4 text-left ring-1 ring-white/10 hover:bg-white/10">
+        <p class="text-sm font-medium">Difficulty</p>
+        <p class="mt-1 text-xs text-white/60" id="difficultyDisplay">Speed: Normal</p>
+      </button>
+    </section>
+
+    <!-- Stats Modal (Hidden) -->
+    <div id="statsModal" class="hidden fixed inset-0 bg-black/50 flex items-end z-50">
+      <div class="w-full bg-[#0B1220] rounded-t-3xl p-6 ring-1 ring-white/10">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-semibold">Game Stats</h2>
+          <button id="closeStats" class="text-white/60 hover:text-white text-2xl">×</button>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="rounded-2xl bg-[#111B2E] p-4 ring-1 ring-white/10">
+            <p class="text-xs text-white/60">Personal Best</p>
+            <p class="mt-2 text-3xl font-semibold text-emerald-400" id="statsBest">128</p>
+          </div>
+          <div class="rounded-2xl bg-[#111B2E] p-4 ring-1 ring-white/10">
+            <p class="text-xs text-white/60">Games Played</p>
+            <p class="mt-2 text-3xl font-semibold text-blue-400" id="statsGames">0</p>
+          </div>
+          <div class="rounded-2xl bg-[#111B2E] p-4 ring-1 ring-white/10">
+            <p class="text-xs text-white/60">Average Score</p>
+            <p class="mt-2 text-3xl font-semibold text-purple-400" id="statsAverage">0</p>
+          </div>
+          <div class="rounded-2xl bg-[#111B2E] p-4 ring-1 ring-white/10">
+            <p class="text-xs text-white/60">Total Score</p>
+            <p class="mt-2 text-3xl font-semibold text-orange-400" id="statsTotal">0</p>
+          </div>
+        </div>
+
+        <button id="resetStats" class="w-full rounded-2xl bg-red-500/20 hover:bg-red-500/30 px-5 py-3 text-sm font-medium text-red-300">
+          Reset Stats
+        </button>
+      </div>
+    </div>
+
+    <!-- Settings Modal (Hidden) -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/50 flex items-end z-50">
+      <div class="w-full bg-[#0B1220] rounded-t-3xl p-3 ring-1 ring-white/10 max-h-[85vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold">Settings</h2>
+          <button id="closeSettings" class="text-white/60 hover:text-white text-xl">×</button>
+        </div>
+        
+        <!-- Snake Color -->
+        <div class="mb-4">
+          <h3 class="text-xs font-medium text-white/80 mb-2">Snake Color</h3>
+          <div class="grid grid-cols-8 gap-1.5">
+            <button class="color-option selected" data-color="#10b981" style="background: linear-gradient(135deg, #10b981, #34d399); box-shadow: 0 0 12px rgba(74, 222, 128, 0.6);" title="Emerald"></button>
+            <button class="color-option" data-color="#06b6d4" style="background: linear-gradient(135deg, #06b6d4, #22d3ee); box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);" title="Cyan"></button>
+            <button class="color-option" data-color="#3b82f6" style="background: linear-gradient(135deg, #3b82f6, #60a5fa); box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);" title="Blue"></button>
+            <button class="color-option" data-color="#8b5cf6" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa); box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);" title="Purple"></button>
+            <button class="color-option" data-color="#ec4899" style="background: linear-gradient(135deg, #ec4899, #f472b6); box-shadow: 0 0 12px rgba(236, 72, 153, 0.6);" title="Pink"></button>
+            <button class="color-option" data-color="#f97316" style="background: linear-gradient(135deg, #f97316, #fb923c); box-shadow: 0 0 12px rgba(249, 115, 22, 0.6);" title="Orange"></button>
+            <button class="color-option" data-color="#ef4444" style="background: linear-gradient(135deg, #ef4444, #f87171); box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);" title="Red"></button>
+            <button class="color-option" data-color="#14b8a6" style="background: linear-gradient(135deg, #14b8a6, #2dd4bf); box-shadow: 0 0 12px rgba(20, 184, 166, 0.6);" title="Teal"></button>
+            <button class="color-option" data-color="#0ea5e9" style="background: linear-gradient(135deg, #0ea5e9, #38bdf8); box-shadow: 0 0 12px rgba(14, 165, 233, 0.6);" title="Sky"></button>
+            <button class="color-option" data-color="#a855f7" style="background: linear-gradient(135deg, #a855f7, #c084fc); box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);" title="Fuchsia"></button>
+            <button class="color-option" data-color="#f43f5e" style="background: linear-gradient(135deg, #f43f5e, #fb7185); box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);" title="Rose"></button>
+            <button class="color-option" data-color="#eab308" style="background: linear-gradient(135deg, #eab308, #facc15); box-shadow: 0 0 12px rgba(234, 179, 8, 0.6);" title="Yellow"></button>
+          </div>
+        </div>
+
+        <!-- UI Theme -->
+        <div class="mb-4">
+          <h3 class="text-xs font-medium text-white/80 mb-2">UI Theme</h3>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button class="theme-option selected" data-theme="dark" style="background: #0a0e17 !important; color: #e5e7eb !important;">
+              <div style="font-size: 18px; margin-bottom: 2px;">🌙</div>
+              Dark
+            </button>
+            <button class="theme-option" data-theme="light" style="background: #f8fafc !important; color: #0f172a !important;">
+              <div style="font-size: 18px; margin-bottom: 2px;">☀️</div>
+              Light
+            </button>
+            <button class="theme-option" data-theme="neon" style="background: linear-gradient(135deg, #0a0e17, #1a1f3a) !important; color: #00ff88 !important;">
+              <div style="font-size: 18px; margin-bottom: 2px;">⚡</div>
+              Neon
+            </button>
+            <button class="theme-option" data-theme="ocean" style="background: linear-gradient(135deg, #0c1e3a, #1a3a52) !important; color: #00d9ff !important;">
+              <div style="font-size: 18px; margin-bottom: 2px;">🌊</div>
+              Ocean
+            </button>
+          </div>
+        </div>
+
+        <!-- Board Color -->
+        <div class="mb-4">
+          <h3 class="text-xs font-medium text-white/80 mb-2">Board Color</h3>
+          <div class="grid grid-cols-4 gap-1.5">
+            <button class="color-option selected" data-board="#111B2E" style="background: #111B2E; border: 2px solid white;" title="Default"></button>
+            <button class="color-option" data-board="#1a1f3a" style="background: #1a1f3a; border: 2px solid rgba(255,255,255,0.3);" title="Deep"></button>
+            <button class="color-option" data-board="#0f2744" style="background: #0f2744; border: 2px solid rgba(255,255,255,0.3);" title="Navy"></button>
+            <button class="color-option" data-board="#1a1a2e" style="background: #1a1a2e; border: 2px solid rgba(255,255,255,0.3);" title="Midnight"></button>
+            <button class="color-option" data-board="#16213e" style="background: #16213e; border: 2px solid rgba(255,255,255,0.3);" title="Slate"></button>
+            <button class="color-option" data-board="#0d1b2a" style="background: #0d1b2a; border: 2px solid rgba(255,255,255,0.3);" title="Cobalt"></button>
+            <button class="color-option" data-board="#1a2332" style="background: #1a2332; border: 2px solid rgba(255,255,255,0.3);" title="Carbon"></button>
+            <button class="color-option" data-board="#222e3f" style="background: #222e3f; border: 2px solid rgba(255,255,255,0.3);" title="Shadow"></button>
+          </div>
+        </div>
+
+        <button id="closeSettingsBtn" class="w-full rounded-lg bg-[#111B2E] px-3 py-1.5 text-xs font-medium ring-1 ring-white/10 hover:bg-white/10 mt-2">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- Difficulty Modal (Hidden) -->
+    <div id="difficultyModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-[#0B1220] rounded-3xl p-4 ring-1 ring-white/10 max-w-lg w-full mx-4">
+        <h2 class="text-xl font-semibold mb-4">Settings</h2>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Speed Column -->
+          <div>
+            <h3 class="text-sm font-medium text-white/80 mb-3">Speed</h3>
+            <div class="space-y-2">
+              <button class="difficulty-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-emerald-400/20 hover:ring-emerald-400/50 transition-all" data-speed="150">
+                <p class="font-medium">Slow</p>
+                <p class="text-xs text-white/60">Relaxed</p>
+              </button>
+              <button class="difficulty-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-emerald-400/20 hover:ring-emerald-400/50 transition-all selected" data-speed="100">
+                <p class="font-medium">Normal</p>
+                <p class="text-xs text-white/60">Balanced</p>
+              </button>
+              <button class="difficulty-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-emerald-400/20 hover:ring-emerald-400/50 transition-all" data-speed="60">
+                <p class="font-medium">Hard</p>
+                <p class="text-xs text-white/60">Fast</p>
+              </button>
+              <button class="difficulty-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-emerald-400/20 hover:ring-emerald-400/50 transition-all" data-speed="40">
+                <p class="font-medium">Insane</p>
+                <p class="text-xs text-white/60">Extreme</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Board Size Column -->
+          <div>
+            <h3 class="text-sm font-medium text-white/80 mb-3">Board Size</h3>
+            <div class="space-y-2">
+              <button class="board-size-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-blue-400/20 hover:ring-blue-400/50 transition-all" data-size="8">
+                <p class="font-medium">Small</p>
+                <p class="text-xs text-white/60">8×8</p>
+              </button>
+              <button class="board-size-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-blue-400/20 hover:ring-blue-400/50 transition-all selected" data-size="10">
+                <p class="font-medium">Normal</p>
+                <p class="text-xs text-white/60">10×10</p>
+              </button>
+              <button class="board-size-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-blue-400/20 hover:ring-blue-400/50 transition-all" data-size="12">
+                <p class="font-medium">Large</p>
+                <p class="text-xs text-white/60">12×12</p>
+              </button>
+              <button class="board-size-btn w-full rounded-2xl bg-[#111B2E] p-3 text-left text-sm ring-1 ring-white/10 hover:bg-blue-400/20 hover:ring-blue-400/50 transition-all" data-size="14">
+                <p class="font-medium">Huge</p>
+                <p class="text-xs text-white/60">14×14</p>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button id="closeDifficulty" class="w-full rounded-lg bg-[#111B2E] px-3 py-2 text-xs font-medium ring-1 ring-white/10 hover:bg-white/10 mt-4">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer hint -->
+    <footer class="mt-auto pt-8">
+      <div class="rounded-2xl bg-black/20 p-4 ring-1 ring-white/10">
+        <p class="text-sm font-medium">Tip</p>
+        <p class="mt-1 text-sm text-white/70">
+          Buffer the next turn (even before the snake reaches the tile) to make swipes feel responsive.
+        </p>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    let gridSize = parseInt(localStorage.getItem('gridSize')) || 10;
+    let GRID_SIZE = gridSize;
+    let CELL_COUNT = GRID_SIZE * GRID_SIZE;
+    let gameActive = false;
+    let initialGameSpeed = 100;
+    let gameSpeed = 100;
+    let score = 0;
+    let bestScore = parseInt(localStorage.getItem('bestScore')) || 128;
+    let lastScore = parseInt(localStorage.getItem('lastScore')) || 42;
+    let gamesPlayed = parseInt(localStorage.getItem('gamesPlayed')) || 0;
+    let totalScore = parseInt(localStorage.getItem('totalScore')) || 0;
+    let snakeColor = localStorage.getItem('snakeColor') || '#10b981';
+    let uiTheme = localStorage.getItem('uiTheme') || 'dark';
+    let boardColor = localStorage.getItem('boardColor') || '#111B2E';
+    let scoreMultiplier = 1;
+
+    // Initialize snake position based on board size
+    function getInitialSnakePosition() {
+      const midPoint = Math.floor(CELL_COUNT / 2);
+      return [midPoint, midPoint - 1, midPoint - 2];
+    }
+
+    let snake = getInitialSnakePosition();
+    let food = Math.floor(CELL_COUNT / 4);
+    let direction = 1; // 1=right, -1=left, 10=down, -10=up
+    let nextDirection = 1;
+
+    const gameBoard = document.getElementById('gameBoard');
+    const gameContainer = document.getElementById('gameContainer');
+    const playBtn = document.getElementById('playBtn');
+    const exitBtn = document.getElementById('exitGame');
+    const currentScoreEl = document.getElementById('currentScore');
+    const bestScoreEl = document.getElementById('bestScore');
+    const lastScoreEl = document.getElementById('lastScore');
+    const statsBtn = document.getElementById('statsBtn');
+    const statsModal = document.getElementById('statsModal');
+    const closeStatsBtn = document.getElementById('closeStats');
+    const resetStatsBtn = document.getElementById('resetStats');
+    const difficultyBtn = document.getElementById('difficultyBtn');
+    const difficultyModal = document.getElementById('difficultyModal');
+    const closeDifficultyBtn = document.getElementById('closeDifficulty');
+    const difficultyDisplay = document.getElementById('difficultyDisplay');
+    const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettingsBtn = document.getElementById('closeSettings');
+    const closeSettingsBtnBottom = document.getElementById('closeSettingsBtn');
+    const colorOptions = document.querySelectorAll('[data-color]');
+    const themeOptions = document.querySelectorAll('.theme-option');
+    const boardColorOptions = document.querySelectorAll('[data-board]');
+
+    bestScoreEl.textContent = bestScore;
+    lastScoreEl.textContent = lastScore;
+
+    // Theme configuration
+    const themes = {
+      dark: {
+        '--bg-primary': '#0B1220',
+        '--bg-secondary': '#111B2E',
+        '--text-primary': '#E5E7EB',
+        '--text-secondary': '#ffffff',
+        '--ring-color': 'rgba(255, 255, 255, 0.1)',
+      },
+      light: {
+        '--bg-primary': '#ffffff',
+        '--bg-secondary': '#f0f4f8',
+        '--text-primary': '#1e293b',
+        '--text-secondary': '#0f172a',
+        '--ring-color': 'rgba(0, 0, 0, 0.15)',
+      },
+      neon: {
+        '--bg-primary': '#0a0e17',
+        '--bg-secondary': '#1a1f3a',
+        '--text-primary': '#00ff88',
+        '--text-secondary': '#00ffff',
+        '--ring-color': 'rgba(0, 255, 136, 0.2)',
+      },
+      ocean: {
+        '--bg-primary': '#0c1e3a',
+        '--bg-secondary': '#1a3a52',
+        '--text-primary': '#00d9ff',
+        '--text-secondary': '#00ffff',
+        '--ring-color': 'rgba(0, 217, 255, 0.2)',
+      }
+    };
+
+    // Apply theme
+    function applyTheme() {
+      const theme = themes[uiTheme];
+      const root = document.documentElement;
+      Object.keys(theme).forEach(key => {
+        root.style.setProperty(key, theme[key]);
+      });
+      
+      // Update body and main backgrounds
+      document.body.style.backgroundColor = theme['--bg-primary'];
+      document.body.style.color = theme['--text-primary'];
+      const main = document.querySelector('main');
+      if (main) {
+        main.style.backgroundColor = theme['--bg-primary'];
+        main.style.color = theme['--text-primary'];
+      }
+
+      // Add dynamic styles for light theme
+      let styleEl = document.getElementById('theme-styles');
+      if (styleEl) styleEl.remove();
+      
+      styleEl = document.createElement('style');
+      styleEl.id = 'theme-styles';
+      styleEl.textContent = `
+        * {
+          background-color: ${uiTheme === 'light' ? 'transparent' : 'auto'};
+        }
+        
+        body, main, section, header, footer {
+          background-color: ${theme['--bg-primary']} !important;
+          color: ${theme['--text-primary']} !important;
+        }
+        
+        .rounded-2xl, .rounded-3xl, [class*="rounded"] {
+          background-color: ${theme['--bg-secondary']} !important;
+          color: ${theme['--text-primary']} !important;
+          border-color: ${theme['--ring-color']} !important;
+        }
+        
+        .text-white\\/70, .text-white\\/60, .text-white\\/80 {
+          color: ${uiTheme === 'light' ? '#64748b' : 'inherit'} !important;
+        }
+        
+        button {
+          background-color: ${theme['--bg-secondary']} !important;
+          color: ${theme['--text-primary']} !important;
+        }
+        
+        button:hover {
+          background-color: ${uiTheme === 'light' ? '#e2e8f0' : '#ffffff1a'} !important;
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
+
+    // Apply saved snake color
+    function applySnakeColor() {
+      const style = document.createElement('style');
+      style.textContent = `
+        .cell.snake {
+          background: ${snakeColor};
+          box-shadow: 0 0 8px ${snakeColor}99;
+        }
+        .cell.snake-head {
+          background: ${snakeColor};
+          opacity: 1;
+          filter: brightness(1.2);
+          box-shadow: 0 0 12px ${snakeColor}dd;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Apply board color
+    function applyBoardColor() {
+      const root = document.documentElement;
+      root.style.setProperty('--board-bg', boardColor);
+      const cellBg = adjustBrightness(boardColor, -0.15);
+      root.style.setProperty('--cell-bg', cellBg);
+    }
+
+    function adjustBrightness(color, percent) {
+      const rgb = parseInt(color.substring(1), 16);
+      const r = Math.max(0, Math.min(255, Math.floor((rgb >> 16) * (1 + percent))));
+      const g = Math.max(0, Math.min(255, Math.floor(((rgb >> 8) & 0xff) * (1 + percent))));
+      const b = Math.max(0, Math.min(255, Math.floor((rgb & 0xff) * (1 + percent))));
+      return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+    }
+
+    applyTheme();
+    applySnakeColor();
+    applyBoardColor();
+
+    // Color picker
+    colorOptions.forEach(btn => {
+      if (btn.dataset.color === snakeColor) {
+        btn.classList.add('selected');
+      }
+      btn.addEventListener('click', () => {
+        colorOptions.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        snakeColor = btn.dataset.color;
+        localStorage.setItem('snakeColor', snakeColor);
+        applySnakeColor();
+      });
+    });
+
+    // Theme picker
+    themeOptions.forEach(btn => {
+      if (btn.dataset.theme === uiTheme) {
+        btn.classList.add('selected');
+      }
+      btn.addEventListener('click', () => {
+        themeOptions.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        uiTheme = btn.dataset.theme;
+        localStorage.setItem('uiTheme', uiTheme);
+        applyTheme();
+      });
+    });
+
+    // Board color picker
+    boardColorOptions.forEach(btn => {
+      if (btn.dataset.board === boardColor) {
+        btn.classList.add('selected');
+      }
+      btn.addEventListener('click', () => {
+        boardColorOptions.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        boardColor = btn.dataset.board;
+        localStorage.setItem('boardColor', boardColor);
+        applyBoardColor();
+      });
+    });
+
+    // Update stats display
+    function updateStatsDisplay() {
+      document.getElementById('statsBest').textContent = bestScore;
+      document.getElementById('statsGames').textContent = gamesPlayed;
+      document.getElementById('statsTotal').textContent = totalScore;
+      const average = gamesPlayed > 0 ? Math.round(totalScore / gamesPlayed) : 0;
+      document.getElementById('statsAverage').textContent = average;
+    }
+
+    // Difficulty controls
+    let selectedDifficulty = 'normal';
+    const difficultyMap = {
+      'slow': { speed: 150, label: 'Slow' },
+      'normal': { speed: 100, label: 'Normal' },
+      'hard': { speed: 60, label: 'Hard' },
+      'insane': { speed: 40, label: 'Insane' }
+    };
+
+    difficultyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        difficultyBtns.forEach(b => b.classList.remove('selected', 'bg-emerald-400/20', 'ring-emerald-400/50'));
+        btn.classList.add('selected', 'bg-emerald-400/20', 'ring-emerald-400/50');
+        
+        initialGameSpeed = parseInt(btn.dataset.speed);
+        const speedLabel = btn.querySelector('p').textContent;
+        difficultyDisplay.textContent = `Speed: ${speedLabel}`;
+      });
+    });
+
+    // Board size controls
+    const boardSizeBtns = document.querySelectorAll('.board-size-btn');
+    boardSizeBtns.forEach(btn => {
+      if (parseInt(btn.dataset.size) === gridSize) {
+        btn.classList.add('selected', 'bg-blue-400/20', 'ring-blue-400/50');
+      }
+      btn.addEventListener('click', () => {
+        boardSizeBtns.forEach(b => b.classList.remove('selected', 'bg-blue-400/20', 'ring-blue-400/50'));
+        btn.classList.add('selected', 'bg-blue-400/20', 'ring-blue-400/50');
+        
+        gridSize = parseInt(btn.dataset.size);
+        GRID_SIZE = gridSize;
+        CELL_COUNT = GRID_SIZE * GRID_SIZE;
+        localStorage.setItem('gridSize', gridSize);
+      });
+    });
+
+    // Initialize game board
+    function initBoard() {
+      gameBoard.innerHTML = '';
+      gameBoard.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+      for (let i = 0; i < CELL_COUNT; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.id = `cell-${i}`;
+        
+        if (i === snake[0]) cell.classList.add('snake-head');
+        else if (snake.includes(i)) cell.classList.add('snake');
+        else if (i === food) cell.classList.add('food');
+        
+        gameBoard.appendChild(cell);
+      }
+    }
+
+    function updateBoard() {
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.classList.remove('snake', 'snake-head', 'food');
+      });
+
+      snake.forEach((segment, index) => {
+        const cell = document.getElementById(`cell-${segment}`);
+        if (index === 0) cell.classList.add('snake-head');
+        else cell.classList.add('snake');
+      });
+
+      const foodCell = document.getElementById(`cell-${food}`);
+      if (foodCell) foodCell.classList.add('food');
+    }
+
+    function generateFood() {
+      let newFood;
+      do {
+        newFood = Math.floor(Math.random() * CELL_COUNT);
+      } while (snake.includes(newFood));
+      return newFood;
+    }
+
+    function moveSnake() {
+      direction = nextDirection;
+      const head = snake[0];
+      const nextHead = head + direction;
+
+      // Wall collision
+      if (nextHead < 0 || nextHead >= CELL_COUNT) {
+        endGame();
+        return;
+      }
+
+      // Row wrapping prevention
+      if (direction === 1 && head % GRID_SIZE === GRID_SIZE - 1) {
+        endGame();
+        return;
+      }
+      if (direction === -1 && head % GRID_SIZE === 0) {
+        endGame();
+        return;
+      }
+
+      // Self collision
+      if (snake.includes(nextHead)) {
+        endGame();
+        return;
+      }
+
+      snake.unshift(nextHead);
+
+      // Food collision
+      if (nextHead === food) {
+        const earned = Math.round(10 * scoreMultiplier);
+        score += earned;
+        scoreMultiplier += 0.05;
+        currentScoreEl.textContent = score;
+        food = generateFood();
+        gameSpeed = Math.max(Math.floor(initialGameSpeed * 0.8), 20);
+      } else {
+        snake.pop();
+      }
+
+      updateBoard();
+    }
+
+    function endGame() {
+      gameActive = false;
+      lastScore = score;
+      gamesPlayed += 1;
+      totalScore += score;
+      
+      localStorage.setItem('lastScore', lastScore);
+      localStorage.setItem('gamesPlayed', gamesPlayed);
+      localStorage.setItem('totalScore', totalScore);
+      
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('bestScore', bestScore);
+        bestScoreEl.textContent = bestScore;
+      }
+      
+      lastScoreEl.textContent = lastScore;
+      gameContainer.classList.add('hidden');
+      playBtn.textContent = 'Play Again';
+    }
+
+    function startGame() {
+      gameActive = true;
+      gameSpeed = initialGameSpeed;
+      score = 0;
+      scoreMultiplier = 1;
+      snake = getInitialSnakePosition();
+      direction = 1;
+      nextDirection = 1;
+      food = generateFood();
+      currentScoreEl.textContent = '0';
+      
+      gameContainer.classList.remove('hidden');
+      initBoard();
+
+      const gameLoop = setInterval(() => {
+        if (!gameActive) clearInterval(gameLoop);
+        moveSnake();
+      }, gameSpeed);
+    }
+
+    // Modal controls
+    settingsBtn.addEventListener('click', () => {
+      settingsModal.classList.remove('hidden');
+    });
+
+    closeSettingsBtn.addEventListener('click', () => {
+      settingsModal.classList.add('hidden');
+    });
+
+    closeSettingsBtnBottom.addEventListener('click', () => {
+      settingsModal.classList.add('hidden');
+    });
+
+    statsBtn.addEventListener('click', () => {
+      updateStatsDisplay();
+      statsModal.classList.remove('hidden');
+    });
+
+    closeStatsBtn.addEventListener('click', () => {
+      statsModal.classList.add('hidden');
+    });
+
+    resetStatsBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset all stats?')) {
+        bestScore = 0;
+        lastScore = 0;
+        gamesPlayed = 0;
+        totalScore = 0;
+        localStorage.removeItem('bestScore');
+        localStorage.removeItem('lastScore');
+        localStorage.removeItem('gamesPlayed');
+        localStorage.removeItem('totalScore');
+        updateStatsDisplay();
+        bestScoreEl.textContent = '0';
+        lastScoreEl.textContent = '0';
+        difficultyDisplay.textContent = 'Speed: Normal';
+        alert('Stats reset!');
+      }
+    });
+
+    difficultyBtn.addEventListener('click', () => {
+      difficultyModal.classList.remove('hidden');
+    });
+
+    closeDifficultyBtn.addEventListener('click', () => {
+      difficultyModal.classList.add('hidden');
+    });
+
+    // Game controls
+    playBtn.addEventListener('click', startGame);
+    exitBtn.addEventListener('click', () => {
+      gameActive = false;
+      gameContainer.classList.add('hidden');
+    });
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (!gameActive) return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+      
+      if (e.key === 'ArrowRight' && direction !== -1) nextDirection = 1;
+      else if (e.key === 'ArrowLeft' && direction !== 1) nextDirection = -1;
+      else if (e.key === 'ArrowDown' && direction !== -GRID_SIZE) nextDirection = GRID_SIZE;
+      else if (e.key === 'ArrowUp' && direction !== GRID_SIZE) nextDirection = -GRID_SIZE;
+    });
+
+    // Touch/Swipe controls
+    let touchStartX = 0, touchStartY = 0;
+    document.addEventListener('touchstart', (e) => {
+      if (!gameActive) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    document.addEventListener('touchend', (e) => {
+      if (!gameActive) return;
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 20 && direction !== -1) nextDirection = 1;
+        else if (deltaX < -20 && direction !== 1) nextDirection = -1;
+      } else {
+        if (deltaY > 20 && direction !== -GRID_SIZE) nextDirection = GRID_SIZE;
+        else if (deltaY < -20 && direction !== GRID_SIZE) nextDirection = -GRID_SIZE;
+      }
+    });
+
+    // Close modals on outside click
+    statsModal.addEventListener('click', (e) => {
+      if (e.target === statsModal) statsModal.classList.add('hidden');
+    });
+    difficultyModal.addEventListener('click', (e) => {
+      if (e.target === difficultyModal) difficultyModal.classList.add('hidden');
+    });
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) settingsModal.classList.add('hidden');
+    });
+  </script>
+</body>
+</html>
