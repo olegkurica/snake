@@ -351,21 +351,25 @@
   </main>
 
   <script>
-    let gridSize = parseInt(localStorage.getItem('gridSize')) || 10;
-    let GRID_SIZE = gridSize;
+    // Game state
+    const gameState = {
+      gridSize: parseInt(localStorage.getItem('gridSize')) || 10,
+      gameActive: false,
+      initialGameSpeed: 100,
+      gameSpeed: 100,
+      score: 0,
+      bestScore: parseInt(localStorage.getItem('bestScore')) || 128,
+      lastScore: parseInt(localStorage.getItem('lastScore')) || 42,
+      gamesPlayed: parseInt(localStorage.getItem('gamesPlayed')) || 0,
+      totalScore: parseInt(localStorage.getItem('totalScore')) || 0,
+      snakeColor: localStorage.getItem('snakeColor') || '#10b981',
+      uiTheme: localStorage.getItem('uiTheme') || 'dark',
+      boardColor: localStorage.getItem('boardColor') || '#1a2745',
+      scoreMultiplier: 1
+    };
+
+    let GRID_SIZE = gameState.gridSize;
     let CELL_COUNT = GRID_SIZE * GRID_SIZE;
-    let gameActive = false;
-    let initialGameSpeed = 100;
-    let gameSpeed = 100;
-    let score = 0;
-    let bestScore = parseInt(localStorage.getItem('bestScore')) || 128;
-    let lastScore = parseInt(localStorage.getItem('lastScore')) || 42;
-    let gamesPlayed = parseInt(localStorage.getItem('gamesPlayed')) || 0;
-    let totalScore = parseInt(localStorage.getItem('totalScore')) || 0;
-    let snakeColor = localStorage.getItem('snakeColor') || '#10b981';
-    let uiTheme = localStorage.getItem('uiTheme') || 'dark';
-    let boardColor = localStorage.getItem('boardColor') || '#111B2E';
-    let scoreMultiplier = 1;
 
     // Initialize snake position based on board size
     function getInitialSnakePosition() {
@@ -402,8 +406,18 @@
     const themeOptions = document.querySelectorAll('.theme-option');
     const boardColorOptions = document.querySelectorAll('[data-board]');
 
-    bestScoreEl.textContent = bestScore;
-    lastScoreEl.textContent = lastScore;
+    // Initialize display values
+    bestScoreEl.textContent = gameState.bestScore;
+    lastScoreEl.textContent = gameState.lastScore;
+
+    // Getters and setters for cleaner code
+    const getGameState = (key) => gameState[key];
+    const setGameState = (key, value) => {
+      gameState[key] = value;
+      if (key === 'bestScore' || key === 'lastScore' || key === 'gamesPlayed' || key === 'totalScore') {
+        localStorage.setItem(key, value);
+      }
+    };
 
     // Theme configuration
     const themes = {
@@ -439,13 +453,10 @@
 
     // Apply theme
     function applyTheme() {
-      const theme = themes[uiTheme];
+      const theme = themes[gameState.uiTheme];
       const root = document.documentElement;
-      Object.keys(theme).forEach(key => {
-        root.style.setProperty(key, theme[key]);
-      });
+      Object.keys(theme).forEach(key => root.style.setProperty(key, theme[key]));
       
-      // Update body and main backgrounds
       document.body.style.backgroundColor = theme['--bg-primary'];
       document.body.style.color = theme['--text-primary'];
       const main = document.querySelector('main');
@@ -454,39 +465,30 @@
         main.style.color = theme['--text-primary'];
       }
 
-      // Add dynamic styles for light theme
       let styleEl = document.getElementById('theme-styles');
       if (styleEl) styleEl.remove();
       
       styleEl = document.createElement('style');
       styleEl.id = 'theme-styles';
       styleEl.textContent = `
-        * {
-          background-color: ${uiTheme === 'light' ? 'transparent' : 'auto'};
-        }
-        
         body, main, section, header, footer {
           background-color: ${theme['--bg-primary']} !important;
           color: ${theme['--text-primary']} !important;
         }
-        
         .rounded-2xl, .rounded-3xl, [class*="rounded"] {
           background-color: ${theme['--bg-secondary']} !important;
           color: ${theme['--text-primary']} !important;
           border-color: ${theme['--ring-color']} !important;
         }
-        
         .text-white\\/70, .text-white\\/60, .text-white\\/80 {
-          color: ${uiTheme === 'light' ? '#64748b' : 'inherit'} !important;
+          color: ${gameState.uiTheme === 'light' ? '#64748b' : 'inherit'} !important;
         }
-        
         button {
           background-color: ${theme['--bg-secondary']} !important;
           color: ${theme['--text-primary']} !important;
         }
-        
         button:hover {
-          background-color: ${uiTheme === 'light' ? '#e2e8f0' : '#ffffff1a'} !important;
+          background-color: ${gameState.uiTheme === 'light' ? '#e2e8f0' : '#ffffff1a'} !important;
         }
       `;
       document.head.appendChild(styleEl);
@@ -497,14 +499,14 @@
       const style = document.createElement('style');
       style.textContent = `
         .cell.snake {
-          background: ${snakeColor};
-          box-shadow: 0 0 8px ${snakeColor}99;
+          background: ${gameState.snakeColor};
+          box-shadow: 0 0 8px ${gameState.snakeColor}99;
         }
         .cell.snake-head {
-          background: ${snakeColor};
+          background: ${gameState.snakeColor};
           opacity: 1;
           filter: brightness(1.2);
-          box-shadow: 0 0 12px ${snakeColor}dd;
+          box-shadow: 0 0 12px ${gameState.snakeColor}dd;
         }
       `;
       document.head.appendChild(style);
@@ -513,8 +515,8 @@
     // Apply board color
     function applyBoardColor() {
       const root = document.documentElement;
-      root.style.setProperty('--board-bg', boardColor);
-      const cellBg = adjustBrightness(boardColor, -0.15);
+      root.style.setProperty('--board-bg', gameState.boardColor);
+      const cellBg = adjustBrightness(gameState.boardColor, -0.15);
       root.style.setProperty('--cell-bg', cellBg);
     }
 
@@ -532,70 +534,57 @@
 
     // Color picker
     colorOptions.forEach(btn => {
-      if (btn.dataset.color === snakeColor) {
-        btn.classList.add('selected');
-      }
+      if (btn.dataset.color === gameState.snakeColor) btn.classList.add('selected');
       btn.addEventListener('click', () => {
         colorOptions.forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        snakeColor = btn.dataset.color;
-        localStorage.setItem('snakeColor', snakeColor);
+        gameState.snakeColor = btn.dataset.color;
+        localStorage.setItem('snakeColor', gameState.snakeColor);
         applySnakeColor();
       });
     });
 
     // Theme picker
     themeOptions.forEach(btn => {
-      if (btn.dataset.theme === uiTheme) {
-        btn.classList.add('selected');
-      }
+      if (btn.dataset.theme === gameState.uiTheme) btn.classList.add('selected');
       btn.addEventListener('click', () => {
         themeOptions.forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        uiTheme = btn.dataset.theme;
-        localStorage.setItem('uiTheme', uiTheme);
+        gameState.uiTheme = btn.dataset.theme;
+        localStorage.setItem('uiTheme', gameState.uiTheme);
         applyTheme();
       });
     });
 
     // Board color picker
     boardColorOptions.forEach(btn => {
-      if (btn.dataset.board === boardColor) {
-        btn.classList.add('selected');
-      }
+      if (btn.dataset.board === gameState.boardColor) btn.classList.add('selected');
       btn.addEventListener('click', () => {
         boardColorOptions.forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        boardColor = btn.dataset.board;
-        localStorage.setItem('boardColor', boardColor);
+        gameState.boardColor = btn.dataset.board;
+        localStorage.setItem('boardColor', gameState.boardColor);
         applyBoardColor();
       });
     });
 
     // Update stats display
     function updateStatsDisplay() {
-      document.getElementById('statsBest').textContent = bestScore;
-      document.getElementById('statsGames').textContent = gamesPlayed;
-      document.getElementById('statsTotal').textContent = totalScore;
-      const average = gamesPlayed > 0 ? Math.round(totalScore / gamesPlayed) : 0;
+      document.getElementById('statsBest').textContent = gameState.bestScore;
+      document.getElementById('statsGames').textContent = gameState.gamesPlayed;
+      document.getElementById('statsTotal').textContent = gameState.totalScore;
+      const average = gameState.gamesPlayed > 0 ? Math.round(gameState.totalScore / gameState.gamesPlayed) : 0;
       document.getElementById('statsAverage').textContent = average;
     }
 
     // Difficulty controls
-    let selectedDifficulty = 'normal';
-    const difficultyMap = {
-      'slow': { speed: 150, label: 'Slow' },
-      'normal': { speed: 100, label: 'Normal' },
-      'hard': { speed: 60, label: 'Hard' },
-      'insane': { speed: 40, label: 'Insane' }
-    };
+    const difficultyMap = { 'slow': { speed: 150 }, 'normal': { speed: 100 }, 'hard': { speed: 60 }, 'insane': { speed: 40 } };
 
     difficultyBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         difficultyBtns.forEach(b => b.classList.remove('selected', 'bg-emerald-400/20', 'ring-emerald-400/50'));
         btn.classList.add('selected', 'bg-emerald-400/20', 'ring-emerald-400/50');
-        
-        initialGameSpeed = parseInt(btn.dataset.speed);
+        gameState.initialGameSpeed = parseInt(btn.dataset.speed);
         const speedLabel = btn.querySelector('p').textContent;
         difficultyDisplay.textContent = `Speed: ${speedLabel}`;
       });
@@ -604,17 +593,16 @@
     // Board size controls
     const boardSizeBtns = document.querySelectorAll('.board-size-btn');
     boardSizeBtns.forEach(btn => {
-      if (parseInt(btn.dataset.size) === gridSize) {
+      if (parseInt(btn.dataset.size) === gameState.gridSize) {
         btn.classList.add('selected', 'bg-blue-400/20', 'ring-blue-400/50');
       }
       btn.addEventListener('click', () => {
         boardSizeBtns.forEach(b => b.classList.remove('selected', 'bg-blue-400/20', 'ring-blue-400/50'));
         btn.classList.add('selected', 'bg-blue-400/20', 'ring-blue-400/50');
-        
-        gridSize = parseInt(btn.dataset.size);
-        GRID_SIZE = gridSize;
+        gameState.gridSize = parseInt(btn.dataset.size);
+        GRID_SIZE = gameState.gridSize;
         CELL_COUNT = GRID_SIZE * GRID_SIZE;
-        localStorage.setItem('gridSize', gridSize);
+        localStorage.setItem('gridSize', gameState.gridSize);
       });
     });
 
@@ -664,37 +652,25 @@
       const nextHead = head + direction;
 
       // Wall collision
-      if (nextHead < 0 || nextHead >= CELL_COUNT) {
-        endGame();
-        return;
-      }
+      if (nextHead < 0 || nextHead >= CELL_COUNT) return endGame();
 
       // Row wrapping prevention
-      if (direction === 1 && head % GRID_SIZE === GRID_SIZE - 1) {
-        endGame();
-        return;
-      }
-      if (direction === -1 && head % GRID_SIZE === 0) {
-        endGame();
-        return;
-      }
+      if ((direction === 1 && head % GRID_SIZE === GRID_SIZE - 1) ||
+          (direction === -1 && head % GRID_SIZE === 0)) return endGame();
 
       // Self collision
-      if (snake.includes(nextHead)) {
-        endGame();
-        return;
-      }
+      if (snake.includes(nextHead)) return endGame();
 
       snake.unshift(nextHead);
 
       // Food collision
       if (nextHead === food) {
-        const earned = Math.round(10 * scoreMultiplier);
-        score += earned;
-        scoreMultiplier += 0.05;
-        currentScoreEl.textContent = score;
+        const earned = Math.round(10 * gameState.scoreMultiplier);
+        gameState.score += earned;
+        gameState.scoreMultiplier += 0.05;
+        currentScoreEl.textContent = gameState.score;
         food = generateFood();
-        gameSpeed = Math.max(Math.floor(initialGameSpeed * 0.8), 20);
+        gameState.gameSpeed = Math.max(Math.floor(gameState.initialGameSpeed * 0.8), 20);
       } else {
         snake.pop();
       }
@@ -703,31 +679,31 @@
     }
 
     function endGame() {
-      gameActive = false;
-      lastScore = score;
-      gamesPlayed += 1;
-      totalScore += score;
+      gameState.gameActive = false;
+      gameState.lastScore = gameState.score;
+      gameState.gamesPlayed += 1;
+      gameState.totalScore += gameState.score;
       
-      localStorage.setItem('lastScore', lastScore);
-      localStorage.setItem('gamesPlayed', gamesPlayed);
-      localStorage.setItem('totalScore', totalScore);
+      localStorage.setItem('lastScore', gameState.lastScore);
+      localStorage.setItem('gamesPlayed', gameState.gamesPlayed);
+      localStorage.setItem('totalScore', gameState.totalScore);
       
-      if (score > bestScore) {
-        bestScore = score;
-        localStorage.setItem('bestScore', bestScore);
-        bestScoreEl.textContent = bestScore;
+      if (gameState.score > gameState.bestScore) {
+        gameState.bestScore = gameState.score;
+        localStorage.setItem('bestScore', gameState.bestScore);
+        bestScoreEl.textContent = gameState.bestScore;
       }
       
-      lastScoreEl.textContent = lastScore;
+      lastScoreEl.textContent = gameState.lastScore;
       gameContainer.classList.add('hidden');
       playBtn.textContent = 'Play Again';
     }
 
     function startGame() {
-      gameActive = true;
-      gameSpeed = initialGameSpeed;
-      score = 0;
-      scoreMultiplier = 1;
+      gameState.gameActive = true;
+      gameState.gameSpeed = gameState.initialGameSpeed;
+      gameState.score = 0;
+      gameState.scoreMultiplier = 1;
       snake = getInitialSnakePosition();
       direction = 1;
       nextDirection = 1;
@@ -738,9 +714,9 @@
       initBoard();
 
       const gameLoop = setInterval(() => {
-        if (!gameActive) clearInterval(gameLoop);
+        if (!gameState.gameActive) clearInterval(gameLoop);
         moveSnake();
-      }, gameSpeed);
+      }, gameState.gameSpeed);
     }
 
     // Modal controls
@@ -767,10 +743,10 @@
 
     resetStatsBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to reset all stats?')) {
-        bestScore = 0;
-        lastScore = 0;
-        gamesPlayed = 0;
-        totalScore = 0;
+        gameState.bestScore = 0;
+        gameState.lastScore = 0;
+        gameState.gamesPlayed = 0;
+        gameState.totalScore = 0;
         localStorage.removeItem('bestScore');
         localStorage.removeItem('lastScore');
         localStorage.removeItem('gamesPlayed');
@@ -794,16 +770,14 @@
     // Game controls
     playBtn.addEventListener('click', startGame);
     exitBtn.addEventListener('click', () => {
-      gameActive = false;
+      gameState.gameActive = false;
       gameContainer.classList.add('hidden');
     });
 
     // Keyboard controls
     document.addEventListener('keydown', (e) => {
-      if (!gameActive) return;
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        e.preventDefault();
-      }
+      if (!gameState.gameActive) return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
       
       if (e.key === 'ArrowRight' && direction !== -1) nextDirection = 1;
       else if (e.key === 'ArrowLeft' && direction !== 1) nextDirection = -1;
